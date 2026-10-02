@@ -1,7 +1,10 @@
-﻿Date,Demand
-Jan-26,100
-Feb-26,120
-Mar-26,135
-Apr-26,150
-May-26,170
-Jun-26,190
+Province,Date,Demand
+Ontario,2026-01,100
+Ontario,2026-02,120
+Ontario,2026-03,140
+Alberta,2026-01,80
+Alberta,2026-02,90
+Alberta,2026-03,105
+Quebec,2026-01,95
+Quebec,2026-02,110
+Quebec,2026-03,125
