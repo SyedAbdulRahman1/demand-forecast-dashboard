@@ -113,4 +113,65 @@ st.plotly_chart(
 # POSTAL CODE FORECAST SECTION
 # ======================================
 
-st.header("📍 Postal Code 
+st.header("📍 Postal Code Demand Forecast")
+
+postal_code = st.selectbox(
+    "Select Postal Code",
+    data["PostalCode"].unique()
+)
+
+postal_data = data[
+    data["PostalCode"] == postal_code
+]
+
+postal_forecast = postal_data["PostalCodeDemand"].mean()
+
+col4, col5, col6 = st.columns(3)
+
+with col4:
+    st.metric(
+        "Forecast Demand",
+        f"{postal_forecast:.0f} MW"
+    )
+
+with col5:
+    st.metric(
+        "Maximum Demand",
+        f"{postal_data['PostalCodeDemand'].max():.0f} MW"
+    )
+
+with col6:
+    st.metric(
+        "Average Demand",
+        f"{postal_data['PostalCodeDemand'].mean():.0f} MW"
+    )
+
+st.subheader("Postal Code Demand Trend")
+
+postal_fig = px.line(
+    postal_data,
+    x="Date",
+    y="PostalCodeDemand",
+    title=f"{postal_code} Demand",
+    template=chart_theme
+)
+
+postal_fig.update_traces(
+    line_width=4
+)
+
+st.plotly_chart(
+    postal_fig,
+    use_container_width=True
+)
+
+# ======================================
+# HISTORICAL DATA TABLE
+# ======================================
+
+st.header("📊 Historical Data")
+
+st.dataframe(
+    data,
+    use_container_width=True
+)
