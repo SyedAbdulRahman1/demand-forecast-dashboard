@@ -3,7 +3,7 @@ import pandas as pd
 import plotly.express as px
 
 # ======================================
-# PAGE CONFIGURATION
+# PAGE CONFIG
 # ======================================
 
 st.set_page_config(
@@ -25,8 +25,8 @@ if dark_mode:
         color: white;
     }
 
-    h1, h2, h3, p {
-        color: white;
+    h1, h2, h3, label, p {
+        color: white !important;
     }
 
     [data-testid="stMetricValue"] {
@@ -35,6 +35,8 @@ if dark_mode:
     </style>
     """, unsafe_allow_html=True)
 
+bg_color = "#0E1117" if dark_mode else "white"
+font_color = "white" if dark_mode else "black"
 chart_theme = "plotly_dark" if dark_mode else "plotly_white"
 
 # ======================================
@@ -44,7 +46,7 @@ chart_theme = "plotly_dark" if dark_mode else "plotly_white"
 data = pd.read_csv("demand_data.csv")
 
 # ======================================
-# HEADER
+# PAGE HEADER
 # ======================================
 
 st.title("⚡ Electrical Demand Forecast Dashboard")
@@ -68,7 +70,9 @@ province_data = data[
     data["Province"] == province
 ]
 
-province_forecast = province_data["ProvincialDemand"].mean()
+province_forecast = province_data[
+    "ProvincialDemand"
+].mean()
 
 col1, col2, col3 = st.columns(3)
 
@@ -104,9 +108,18 @@ province_fig.update_traces(
     line_width=4
 )
 
+province_fig.update_layout(
+    paper_bgcolor=bg_color,
+    plot_bgcolor=bg_color,
+    font_color=font_color,
+    title_font_size=22,
+    hovermode="x unified"
+)
+
 st.plotly_chart(
     province_fig,
-    use_container_width=True
+    use_container_width=True,
+    theme=None
 )
 
 # ======================================
@@ -124,7 +137,9 @@ postal_data = data[
     data["PostalCode"] == postal_code
 ]
 
-postal_forecast = postal_data["PostalCodeDemand"].mean()
+postal_forecast = postal_data[
+    "PostalCodeDemand"
+].mean()
 
 col4, col5, col6 = st.columns(3)
 
@@ -160,9 +175,18 @@ postal_fig.update_traces(
     line_width=4
 )
 
+postal_fig.update_layout(
+    paper_bgcolor=bg_color,
+    plot_bgcolor=bg_color,
+    font_color=font_color,
+    title_font_size=22,
+    hovermode="x unified"
+)
+
 st.plotly_chart(
     postal_fig,
-    use_container_width=True
+    use_container_width=True,
+    theme=None
 )
 
 # ======================================
