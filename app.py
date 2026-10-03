@@ -12,7 +12,7 @@ st.set_page_config(
 )
 
 # ======================================
-# DARK MODE TOGGLE
+# DARK MODE
 # ======================================
 
 dark_mode = st.toggle("🌙 Dark Mode")
@@ -25,7 +25,7 @@ if dark_mode:
         color: white;
     }
 
-    h1, h2, h3, label, p {
+    h1, h2, h3, p, label {
         color: white !important;
     }
 
@@ -45,157 +45,170 @@ chart_theme = "plotly_dark" if dark_mode else "plotly_white"
 
 data = pd.read_csv("demand_data.csv")
 
+data["Date"] = pd.to_datetime(data["Date"])
+
 # ======================================
-# PAGE HEADER
+# HEADER
 # ======================================
 
 st.title("⚡ Electrical Demand Forecast Dashboard")
 
 st.write(
-    "Provincial and Postal Code electrical demand forecasts."
+    "Cloud-hosted dashboard for provincial and postal code demand forecasting."
 )
 
 # ======================================
-# PROVINCIAL FORECAST SECTION
+# FILTER ROW
 # ======================================
 
-st.header("🏛 Provincial Demand Forecast")
+st.divider()
 
-province = st.selectbox(
-    "Select Province",
-    data["Province"].unique()
-)
+filter_col1, filter_col2, filter_col3 = st.columns(3)
 
-province_data = data[
-    data["Province"] == province
-]
-
-province_forecast = province_data[
-    "ProvincialDemand"
-].mean()
-
-col1, col2, col3 = st.columns(3)
-
-with col1:
-    st.metric(
-        "Forecast Demand",
-        f"{province_forecast:.0f} MW"
+with filter_col1:
+    postal_code = st.selectbox(
+        "Postal Code",
+        sorted(data["PostalCode"].unique())
     )
 
-with col2:
-    st.metric(
-        "Maximum Demand",
-        f"{province_data['ProvincialDemand'].max():.0f} MW"
+with filter_col2:
+    province = st.selectbox(
+        "Province",
+        sorted(data["Province"].unique())
     )
 
-with col3:
-    st.metric(
-        "Average Demand",
-        f"{province_data['ProvincialDemand'].mean():.0f} MW"
+with filter_col3:
+    selected_date = st.date_input(
+        "Select Date",
+        value=data["Date"].max()
     )
 
-st.subheader("Provincial Demand Trend")
-
-province_fig = px.line(
-    province_data,
-    x="Date",
-    y="ProvincialDemand",
-    title=f"{province} Provincial Demand",
-    template=chart_theme
-)
-
-province_fig.update_traces(
-    line_width=4
-)
-
-province_fig.update_layout(
-    paper_bgcolor=bg_color,
-    plot_bgcolor=bg_color,
-    font_color=font_color,
-    title_font_size=22,
-    hovermode="x unified"
-)
-
-st.plotly_chart(
-    province_fig,
-    use_container_width=True,
-    theme=None
-)
-
-# ======================================
-# POSTAL CODE FORECAST SECTION
-# ======================================
-
-st.header("📍 Postal Code Demand Forecast")
-
-postal_code = st.selectbox(
-    "Select Postal Code",
-    data["PostalCode"].unique()
-)
-
-postal_data = data[
-    data["PostalCode"] == postal_code
-]
-
-postal_forecast = postal_data[
-    "PostalCodeDemand"
-].mean()
-
-col4, col5, col6 = st.columns(3)
-
-with col4:
-    st.metric(
-        "Forecast Demand",
-        f"{postal_forecast:.0f} MW"
-    )
-
-with col5:
-    st.metric(
-        "Maximum Demand",
-        f"{postal_data['PostalCodeDemand'].max():.0f} MW"
-    )
-
-with col6:
-    st.metric(
-        "Average Demand",
-        f"{postal_data['PostalCodeDemand'].mean():.0f} MW"
-    )
-
-st.subheader("Postal Code Demand Trend")
-
-postal_fig = px.line(
-    postal_data,
-    x="Date",
-    y="PostalCodeDemand",
-    title=f"{postal_code} Demand",
-    template=chart_theme
-)
-
-postal_fig.update_traces(
-    line_width=4
-)
-
-postal_fig.update_layout(
-    paper_bgcolor=bg_color,
-    plot_bgcolor=bg_color,
-    font_color=font_color,
-    title_font_size=22,
-    hovermode="x unified"
-)
-
-st.plotly_chart(
-    postal_fig,
-    use_container_width=True,
-    theme=None
-)
-
-# ======================================
-# HISTORICAL DATA TABLE
-# ======================================
-
-st.header("📊 Historical Data")
-
-st.dataframe(
-    data,
+generate = st.button(
+    "Generate Forecast",
     use_container_width=True
 )
+
+st.divider()
+
+# ======================================
+# DASHBOARD
+# ======================================
+
+if generate:
+
+    province_data = data[
+        data["Province"] == province
+    ]
+
+    postal_data = data[
+        data["PostalCode"] == postal_code
+    ]
+
+    # ======================================
+    # METRICS
+    # ======================================
+
+    st.header("Forecast Summary")
+
+    m1, m2 = st.columns(2)
+
+    with m1:
+
+        province_forecast = province_data[
+            "ProvincialDemand"
+        ].mean()
+
+        st.metric(
+            "Provincial Forecast",
+            f"{province_forecast:.0f} MW"
+        )
+
+    with m2:
+
+        postal_forecast = postal_data[
+            "PostalCodeDemand"
+        ].mean()
+
+        st.metric(
+            "Postal Code Forecast",
+            f"{postal_forecast:.0f} MW"
+        )
+
+    st.divider()
+
+    # ======================================
+    # CHARTS SIDE BY SIDE
+    # ======================================
+
+    chart1, chart2 = st.columns(2)
+
+    with chart1:
+
+        st.subheader("🏛 Provincial Demand Trend")
+
+        province_fig = px.line(
+            province_data,
+            x="Date",
+            y="ProvincialDemand",
+            template=chart_theme,
+            title=f"{province} Provincial Demand"
+        )
+
+        province_fig.update_layout(
+            paper_bgcolor=bg_color,
+            plot_bgcolor=bg_color,
+            font_color=font_color,
+            hovermode="x unified"
+        )
+
+        province_fig.update_traces(
+            line_width=4
+        )
+
+        st.plotly_chart(
+            province_fig,
+            use_container_width=True,
+            theme=None
+        )
+
+    with chart2:
+
+        st.subheader("📍 Postal Code Demand Trend")
+
+        postal_fig = px.line(
+            postal_data,
+            x="Date",
+            y="PostalCodeDemand",
+            template=chart_theme,
+            title=f"{postal_code} Demand"
+        )
+
+        postal_fig.update_layout(
+            paper_bgcolor=bg_color,
+            plot_bgcolor=bg_color,
+            font_color=font_color,
+            hovermode="x unified"
+        )
+
+        postal_fig.update_traces(
+            line_width=4
+        )
+
+        st.plotly_chart(
+            postal_fig,
+            use_container_width=True,
+            theme=None
+        )
+
+    st.divider()
+
+    # ======================================
+    # DATA TABLE
+    # ======================================
+
+    st.header("📊 Historical Data")
+
+    st.dataframe(
+        data,
+        use_container_width=True
+    )
