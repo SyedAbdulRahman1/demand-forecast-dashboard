@@ -1,8 +1,9 @@
 import streamlit as st
 import pandas as pd
+import plotly.express as px
 
 # ======================================
-# PAGE CONFIG
+# PAGE CONFIGURATION
 # ======================================
 
 st.set_page_config(
@@ -11,7 +12,7 @@ st.set_page_config(
 )
 
 # ======================================
-# DARK / LIGHT MODE
+# DARK MODE TOGGLE
 # ======================================
 
 dark_mode = st.toggle("🌙 Dark Mode")
@@ -33,6 +34,8 @@ if dark_mode:
     }
     </style>
     """, unsafe_allow_html=True)
+
+chart_theme = "plotly_dark" if dark_mode else "plotly_white"
 
 # ======================================
 # LOAD DATA
@@ -65,9 +68,7 @@ province_data = data[
     data["Province"] == province
 ]
 
-province_forecast = province_data[
-    "ProvincialDemand"
-].mean()
+province_forecast = province_data["ProvincialDemand"].mean()
 
 col1, col2, col3 = st.columns(3)
 
@@ -91,63 +92,25 @@ with col3:
 
 st.subheader("Provincial Demand Trend")
 
-st.line_chart(
-    province_data.set_index("Date")[
-        "ProvincialDemand"
-    ]
+province_fig = px.line(
+    province_data,
+    x="Date",
+    y="ProvincialDemand",
+    title=f"{province} Provincial Demand",
+    template=chart_theme
+)
+
+province_fig.update_traces(
+    line_width=4
+)
+
+st.plotly_chart(
+    province_fig,
+    use_container_width=True
 )
 
 # ======================================
 # POSTAL CODE FORECAST SECTION
 # ======================================
 
-st.header("📍 Postal Code Demand Forecast")
-
-postal_code = st.selectbox(
-    "Select Postal Code",
-    data["PostalCode"].unique()
-)
-
-postal_data = data[
-    data["PostalCode"] == postal_code
-]
-
-postal_forecast = postal_data[
-    "PostalCodeDemand"
-].mean()
-
-col4, col5, col6 = st.columns(3)
-
-with col4:
-    st.metric(
-        "Forecast Demand",
-        f"{postal_forecast:.0f} MW"
-    )
-
-with col5:
-    st.metric(
-        "Maximum Demand",
-        f"{postal_data['PostalCodeDemand'].max():.0f} MW"
-    )
-
-with col6:
-    st.metric(
-        "Average Demand",
-        f"{postal_data['PostalCodeDemand'].mean():.0f} MW"
-    )
-
-st.subheader("Postal Code Demand Trend")
-
-st.line_chart(
-    postal_data.set_index("Date")[
-        "PostalCodeDemand"
-    ]
-)
-
-# ======================================
-# HISTORICAL DATA
-# ======================================
-
-st.header("📊 Historical Data")
-
-st.dataframe(data, use_container_width=True)
+st.header("📍 Postal Code 
