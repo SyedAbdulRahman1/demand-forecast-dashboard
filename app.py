@@ -15,7 +15,7 @@ st.set_page_config(
 # DARK MODE
 # ======================================
 
-dark_mode = st.toggle("🌙 Dark Mode")
+dark_mode = st.toggle("Dark Mode")
 
 if dark_mode:
     st.markdown("""
@@ -51,7 +51,7 @@ data["Date"] = pd.to_datetime(data["Date"])
 # HEADER
 # ======================================
 
-st.title("⚡ Electrical Demand Forecast Dashboard")
+st.title("Electrical Demand Forecast Dashboard")
 
 st.write(
     "Cloud-hosted dashboard for provincial and postal code demand forecasting."
@@ -144,7 +144,7 @@ if generate:
 
     with chart1:
 
-        st.subheader("🏛 Provincial Demand Trend")
+        st.subheader("Provincial Demand Trend")
 
         province_fig = px.line(
             province_data,
@@ -173,7 +173,7 @@ if generate:
 
     with chart2:
 
-        st.subheader("📍 Postal Code Demand Trend")
+        st.subheader("Postal Code Demand Trend")
 
         postal_fig = px.line(
             postal_data,
