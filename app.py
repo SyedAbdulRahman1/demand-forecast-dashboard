@@ -18,11 +18,8 @@ st.set_page_config(
 if "dark_mode" not in st.session_state:
     st.session_state.dark_mode = False
 
-if "generated" not in st.session_state:
-    st.session_state.generated = False
-
 # ==================================================
-# DARK MODE
+# DARK MODE TOGGLE
 # ==================================================
 
 dark_mode = st.toggle(
@@ -32,27 +29,103 @@ dark_mode = st.toggle(
 
 st.session_state.dark_mode = dark_mode
 
+# ==================================================
+# DARK MODE SETTINGS
+# ==================================================
+
+bg_color = "#050B18" if dark_mode else "white"
+font_color = "white" if dark_mode else "black"
+chart_theme = "plotly_dark" if dark_mode else "plotly_white"
+
 if dark_mode:
     st.markdown("""
     <style>
-    .stApp {
-        background-color: #0E1117;
-        color: white;
-    }
-
-    h1,h2,h3,h4,p,label {
-        color:white !important;
-    }
-
-    [data-testid="stMetricValue"] {
-        color:#00FFB3;
+    .stApp{
+        background-color:#050B18;
     }
     </style>
     """, unsafe_allow_html=True)
 
-bg_color = "#0E1117" if dark_mode else "white"
-font_color = "white" if dark_mode else "black"
-chart_theme = "plotly_dark" if dark_mode else "plotly_white"
+# ==================================================
+# CUSTOM CSS
+# ==================================================
+
+st.markdown("""
+<style>
+
+/* -------------------- */
+/* TABS */
+/* -------------------- */
+
+.stTabs [role="tablist"]{
+    justify-content:center;
+    gap:80px;
+}
+
+.stTabs [role="tab"]{
+    font-size:24px;
+    font-weight:600;
+    height:70px;
+    padding-left:35px;
+    padding-right:35px;
+}
+
+/* -------------------- */
+/* RADIO BUTTONS */
+/* -------------------- */
+
+div[role="radiogroup"]{
+    display:flex;
+    justify-content:center;
+    gap:50px;
+}
+
+/* -------------------- */
+/* BUTTONS */
+/* -------------------- */
+
+.stButton{
+    text-align:center;
+}
+
+.stButton button{
+    background-color:#4CAF50;
+    color:white;
+    font-weight:bold;
+    border-radius:10px;
+    height:50px;
+}
+
+/* -------------------- */
+/* METRICS */
+/* -------------------- */
+
+[data-testid="stMetricValue"]{
+    font-size:32px;
+}
+
+/* -------------------- */
+/* FIX DROPDOWN COLORS */
+/* -------------------- */
+
+.stSelectbox div[data-baseweb="select"]{
+    color:black !important;
+}
+
+.stDateInput input{
+    color:black !important;
+}
+
+/* -------------------- */
+/* INFO SECTIONS */
+/* -------------------- */
+
+.center-text{
+    text-align:center;
+}
+
+</style>
+""", unsafe_allow_html=True)
 
 # ==================================================
 # LOAD DATA
@@ -64,26 +137,41 @@ data["Date"] = pd.to_datetime(
     data["Date"],
     format="%Y-%m"
 )
+
 # ==================================================
 # HEADER
 # ==================================================
 
 st.markdown(
-    """
-    <h1 style='text-align:center;'>
-    Electrical Demand Forecast Dashboard
-    </h1>
-    """,
-    unsafe_allow_html=True
+"""
+<h1 style='text-align:center;
+           font-size:64px;'>
+Electrical Demand Forecast Dashboard
+</h1>
+""",
+unsafe_allow_html=True
 )
 
 st.markdown(
-    """
-    <div style="text-align:center;">
-    Cloud-hosted dashboard for provincial and postal code demand forecasting.
-    </div>
-    """,
-    unsafe_allow_html=True
+"""
+<div style='text-align:center;
+            font-size:20px;
+            line-height:1.8;'>
+
+Welcome to the Canadian Electrical Demand Dashboard
+
+<br>
+
+Please select Provincial Demand
+or Postal Code Demand to begin forecasting.
+
+<br><br>
+
+Cloud-hosted dashboard for provincial and postal code demand forecasting.
+
+</div>
+""",
+unsafe_allow_html=True
 )
 
 st.divider()
@@ -102,50 +190,88 @@ prov_tab, postal_tab = st.tabs(
 
 with prov_tab:
 
-    st.subheader("Canadian Provinces")
+    st.markdown(
+    """
+    <h2 style='text-align:center;'>
+    Canadian Provinces
+    </h2>
+    """,
+    unsafe_allow_html=True
+    )
+
+    st.markdown(
+    """
+    <div style='text-align:center; font-size:18px;'>
+
+    Choose to generate Historical Demand
+    or Forecast Demand
+
+    </div>
+    """,
+    unsafe_allow_html=True
+    )
 
     mode = st.radio(
-        "Choose Option",
+        "",
         ["Historical Demand", "Forecast Demand"],
         horizontal=True
     )
 
-    # ==========================================
-    # HISTORICAL DEMAND PAGE
-    # ==========================================
+    # =====================================
+    # HISTORICAL
+    # =====================================
 
     if mode == "Historical Demand":
 
-        c1, c2, c3 = st.columns(3)
+        st.markdown(
+        """
+        <div style='text-align:center;
+                    font-size:18px;
+                    margin-bottom:20px;'>
 
-        with c1:
+        Select your province and date range
+        to generate historical demand.
+
+        </div>
+        """,
+        unsafe_allow_html=True
+        )
+
+        left, center, right = st.columns([1,2,1])
+
+        with center:
+
             province = st.selectbox(
                 "Province",
                 sorted(data["Province"].unique())
             )
 
-        with c2:
-            start_date = st.date_input(
-                "Start Date",
-                value=data["Date"].min()
+            c1, c2 = st.columns(2)
+
+            with c1:
+                start_date = st.date_input(
+                    "Start Date",
+                    value=data["Date"].min()
+                )
+
+            with c2:
+                end_date = st.date_input(
+                    "End Date",
+                    value=data["Date"].max()
+                )
+
+        col1, col2, col3 = st.columns([2,1,2])
+
+        with col2:
+            generate = st.button(
+                "Generate Historical Demand",
+                use_container_width=True
             )
 
-        with c3:
-            end_date = st.date_input(
-                "End Date",
-                value=data["Date"].max()
-            )
-
-        if st.button(
-            "Generate Historical Demand",
-            key="prov_hist"
-        ):
-            st.session_state.generated = True
-
-        if st.session_state.generated:
+        if generate:
 
             province_data = data[
-                (data["Province"] == province)
+                data["Province"] == province
             ]
 
             st.divider()
@@ -154,23 +280,20 @@ with prov_tab:
 
             m1, m2, m3 = st.columns(3)
 
-            with m1:
-                st.metric(
-                    "Average Demand",
-                    f"{province_data['ProvincialDemand'].mean():.0f} MW"
-                )
+            m1.metric(
+                "Average Demand",
+                f"{province_data['ProvincialDemand'].mean():.0f} MW"
+            )
 
-            with m2:
-                st.metric(
-                    "Peak Demand",
-                    f"{province_data['ProvincialDemand'].max():.0f} MW"
-                )
+            m2.metric(
+                "Peak Demand",
+                f"{province_data['ProvincialDemand'].max():.0f} MW"
+            )
 
-            with m3:
-                st.metric(
-                    "Minimum Demand",
-                    f"{province_data['ProvincialDemand'].min():.0f} MW"
-                )
+            m3.metric(
+                "Minimum Demand",
+                f"{province_data['ProvincialDemand'].min():.0f} MW"
+            )
 
             chart1, chart2 = st.columns(2)
 
@@ -184,12 +307,6 @@ with prov_tab:
                     template=chart_theme
                 )
 
-                fig.update_layout(
-                    paper_bgcolor=bg_color,
-                    plot_bgcolor=bg_color,
-                    font_color=font_color
-                )
-
                 st.plotly_chart(
                     fig,
                     use_container_width=True
@@ -197,7 +314,7 @@ with prov_tab:
 
             with chart2:
 
-                weather_placeholder = px.line(
+                weather = px.line(
                     province_data,
                     x="Date",
                     y="ProvincialDemand",
@@ -205,14 +322,8 @@ with prov_tab:
                     template=chart_theme
                 )
 
-                weather_placeholder.update_layout(
-                    paper_bgcolor=bg_color,
-                    plot_bgcolor=bg_color,
-                    font_color=font_color
-                )
-
                 st.plotly_chart(
-                    weather_placeholder,
+                    weather,
                     use_container_width=True
                 )
 
@@ -223,33 +334,50 @@ with prov_tab:
                 use_container_width=True
             )
 
-    # ==========================================
-    # FORECAST PAGE
-    # ==========================================
+    # =====================================
+    # FORECAST
+    # =====================================
 
     else:
 
-        c1, c2 = st.columns(2)
+        st.markdown(
+        """
+        <div style='text-align:center;
+                    font-size:18px;
+                    margin-bottom:20px;'>
 
-        with c1:
+        Select your province and forecast range
+        (1-7 days ahead) to generate demand.
+
+        </div>
+        """,
+        unsafe_allow_html=True
+        )
+
+        left, center, right = st.columns([1,2,1])
+
+        with center:
 
             province = st.selectbox(
                 "Province",
                 sorted(data["Province"].unique()),
-                key="forecast_province"
+                key="prov_forecast"
             )
-
-        with c2:
 
             forecast_days = st.selectbox(
                 "Forecast Range (Days)",
-                [1, 2, 3, 4, 5, 6, 7]
+                [1,2,3,4,5,6,7]
             )
 
-        if st.button(
-            "Generate Forecast",
-            key="prov_forecast"
-        ):
+        col1, col2, col3 = st.columns([2,1,2])
+
+        with col2:
+            generate = st.button(
+                "Generate Forecast",
+                use_container_width=True
+            )
+
+        if generate:
 
             province_data = data[
                 data["Province"] == province
@@ -258,173 +386,132 @@ with prov_tab:
             st.subheader("Forecast Summary")
 
             st.metric(
-                "Forecasted Demand",
+                "Forecast Demand",
                 f"{province_data['ProvincialDemand'].mean():.0f} MW"
             )
 
-            chart1, chart2 = st.columns(2)
-
-            with chart1:
-
-                fig = px.line(
-                    province_data,
-                    x="Date",
-                    y="ProvincialDemand",
-                    title="Forecast Trend",
-                    template=chart_theme
-                )
-
-                st.plotly_chart(
-                    fig,
-                    use_container_width=True
-                )
-
-            with chart2:
-
-                weather_fig = px.line(
-                    province_data,
-                    x="Date",
-                    y="ProvincialDemand",
-                    title="Weather Forecast Placeholder",
-                    template=chart_theme
-                )
-
-                st.plotly_chart(
-                    weather_fig,
-                    use_container_width=True
-                )
-
 # ==================================================
-# POSTAL CODE TAB
+# POSTAL TAB
 # ==================================================
 
 with postal_tab:
 
-    st.subheader("Postal Code Demand")
+    st.markdown(
+    """
+    <h2 style='text-align:center;'>
+    Postal Code Demand
+    </h2>
+    """,
+    unsafe_allow_html=True
+    )
 
-    mode = st.radio(
-        "Choose Option",
+    st.markdown(
+    """
+    <div style='text-align:center;
+                font-size:18px;'>
+
+    Choose to generate Historical Demand
+    or Forecast Demand
+
+    </div>
+    """,
+    unsafe_allow_html=True
+    )
+
+    postal_mode = st.radio(
+        "",
         ["Historical Demand", "Forecast Demand"],
         horizontal=True,
         key="postal_mode"
     )
 
-    # ==========================================
-    # POSTAL HISTORICAL
-    # ==========================================
+    if postal_mode == "Historical Demand":
 
-    if mode == "Historical Demand":
+        st.markdown(
+        """
+        <div style='text-align:center;
+                    font-size:18px;'>
 
-        c1, c2, c3 = st.columns(3)
+        Select your postal code and date range
+        to generate historical demand.
 
-        with c1:
+        </div>
+        """,
+        unsafe_allow_html=True
+        )
+
+        left, center, right = st.columns([1,2,1])
+
+        with center:
 
             postal = st.selectbox(
                 "Postal Code",
                 sorted(data["PostalCode"].unique())
             )
 
-        with c2:
+        col1, col2, col3 = st.columns([2,1,2])
 
-            start_date = st.date_input(
-                "Start Date",
-                value=data["Date"].min(),
-                key="postal_start"
+        with col2:
+
+            generate = st.button(
+                "Generate Historical Demand",
+                key="postal_hist",
+                use_container_width=True
             )
 
-        with c3:
-
-            end_date = st.date_input(
-                "End Date",
-                value=data["Date"].max(),
-                key="postal_end"
-            )
-
-        if st.button(
-            "Generate Historical Demand",
-            key="postal_hist"
-        ):
+        if generate:
 
             postal_data = data[
                 data["PostalCode"] == postal
             ]
 
-            st.subheader("Postal Demand Summary")
+            st.metric(
+                "Average Postal Demand",
+                f"{postal_data['PostalCodeDemand'].mean():.0f} MW"
+            )
 
-            m1, m2, m3 = st.columns(3)
+            fig = px.line(
+                postal_data,
+                x="Date",
+                y="PostalCodeDemand",
+                title=f"{postal} Demand Trend",
+                template=chart_theme
+            )
 
-            with m1:
-                st.metric(
-                    "Average Demand",
-                    f"{postal_data['PostalCodeDemand'].mean():.0f} MW"
-                )
-
-            with m2:
-                st.metric(
-                    "Peak Demand",
-                    f"{postal_data['PostalCodeDemand'].max():.0f} MW"
-                )
-
-            with m3:
-                st.metric(
-                    "Minimum Demand",
-                    f"{postal_data['PostalCodeDemand'].min():.0f} MW"
-                )
-
-            col1, col2 = st.columns(2)
-
-            with col1:
-
-                fig = px.line(
-                    postal_data,
-                    x="Date",
-                    y="PostalCodeDemand",
-                    title=f"{postal} Demand Trend",
-                    template=chart_theme
-                )
-
-                st.plotly_chart(
-                    fig,
-                    use_container_width=True
-                )
-
-            with col2:
-
-                weather_fig = px.line(
-                    postal_data,
-                    x="Date",
-                    y="PostalCodeDemand",
-                    title="Weather Trend Placeholder",
-                    template=chart_theme
-                )
-
-                st.plotly_chart(
-                    weather_fig,
-                    use_container_width=True
-                )
+            st.plotly_chart(
+                fig,
+                use_container_width=True
+            )
 
             st.dataframe(
                 postal_data,
                 use_container_width=True
             )
 
-    # ==========================================
-    # POSTAL FORECAST
-    # ==========================================
-
     else:
 
-        c1, c2 = st.columns(2)
+        st.markdown(
+        """
+        <div style='text-align:center;
+                    font-size:18px;'>
 
-        with c1:
+        Select your postal code and forecast range
+        (1-7 days ahead) to generate demand.
+
+        </div>
+        """,
+        unsafe_allow_html=True
+        )
+
+        left, center, right = st.columns([1,2,1])
+
+        with center:
 
             postal = st.selectbox(
                 "Postal Code",
                 sorted(data["PostalCode"].unique()),
-                key="postal_forecast_code"
+                key="postal_forecast"
             )
-
-        with c2:
 
             forecast_days = st.selectbox(
                 "Forecast Range",
@@ -432,10 +519,17 @@ with postal_tab:
                 key="postal_days"
             )
 
-        if st.button(
-            "Generate Forecast",
-            key="postal_forecast"
-        ):
+        col1, col2, col3 = st.columns([2,1,2])
+
+        with col2:
+
+            generate = st.button(
+                "Generate Forecast",
+                key="postal_generate",
+                use_container_width=True
+            )
+
+        if generate:
 
             postal_data = data[
                 data["PostalCode"] == postal
@@ -450,7 +544,7 @@ with postal_tab:
                 postal_data,
                 x="Date",
                 y="PostalCodeDemand",
-                title="Forecast Trend",
+                title=f"{postal} Forecast",
                 template=chart_theme
             )
 
