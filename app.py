@@ -1,4 +1,12 @@
+import base64
+import io
+import math
+import struct
+import wave
+from pathlib import Path
+
 import streamlit as st
+import streamlit.components.v1 as components
 import pandas as pd
 import plotly.express as px
 
@@ -22,6 +30,46 @@ if "dark_mode" not in st.session_state:
 if "page" not in st.session_state:
     st.session_state.page = "home"
 
+if "play_click_sound" not in st.session_state:
+    st.session_state.play_click_sound = False
+
+
+def trigger_click_sound():
+    st.session_state.play_click_sound = True
+
+
+def make_click_sound_data_uri():
+    sample_rate = 22050
+    frame_count = int(sample_rate * 0.06)
+    audio = io.BytesIO()
+
+    with wave.open(audio, "wb") as wav_file:
+        wav_file.setnchannels(1)
+        wav_file.setsampwidth(2)
+        wav_file.setframerate(sample_rate)
+
+        for frame in range(frame_count):
+            envelope = 1 - frame / frame_count
+            sample = int(
+                0.35
+                * envelope
+                * 32767
+                * math.sin(2 * math.pi * 1400 * frame / sample_rate)
+            )
+            wav_file.writeframesraw(struct.pack("<h", sample))
+
+    encoded_audio = base64.b64encode(audio.getvalue()).decode("ascii")
+    return f"data:audio/wav;base64,{encoded_audio}"
+
+
+if st.session_state.play_click_sound:
+    sound_data_uri = make_click_sound_data_uri()
+    components.html(
+        f'<audio autoplay src="{sound_data_uri}"></audio>',
+        height=0,
+    )
+    st.session_state.play_click_sound = False
+
 # ==================================================
 # DARK MODE
 # ==================================================
@@ -33,8 +81,6 @@ dark_mode = st.toggle(
 
 st.session_state.dark_mode = dark_mode
 
-bg_color = "#0E1117" if dark_mode else "white"
-font_color = "white" if dark_mode else "black"
 chart_theme = "plotly_dark" if dark_mode else "plotly_white"
 
 # ==================================================
@@ -83,10 +129,11 @@ st.markdown("""
 /* HOME CARDS */
 
 div[data-testid="stButton"] button {
-    height:120px;
-    font-size:22px;
+    height:62px;
+    font-size:26px;
     font-weight:600;
     border-radius:12px;
+    padding:0.35rem 0.9rem;
 }
 
 /* METRICS */
@@ -95,20 +142,37 @@ div[data-testid="stButton"] button {
     font-size:34px;
 }
 
-/* CENTER RADIOS */
+/* TAB/TEXT SIZE */
+
+.stTabs [role="tab"] {
+    font-size:18px;
+    font-weight:600;
+}
 
 div[role="radiogroup"]{
     display:flex;
     justify-content:center;
     gap:50px;
+    font-size:16px;
 }
 
-/* GREEN BUTTONS */
+/* ACCENT BUTTONS */
 
 .stButton button{
-    background-color:#4CAF50;
+    background: linear-gradient(135deg, #1d4ed8, #3b82f6);
     color:white;
     font-weight:bold;
+    border: none;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+}
+
+.stButton button:hover {
+    background: linear-gradient(135deg, #1e40af, #2563eb);
+    color:white;
+}
+
+[data-testid="stContainer"] {
+    border-radius: 12px;
 }
 
 </style>
@@ -118,12 +182,64 @@ div[role="radiogroup"]{
 # DATA
 # ==================================================
 
-data = pd.read_csv("demand_data.csv")
+DATA_PATH = Path(__file__).resolve().parent / "demand_data.csv"
 
-data["Date"] = pd.to_datetime(
-    data["Date"],
-    errors="coerce"
-)
+if not DATA_PATH.exists():
+    st.error(
+        f"CSV file not found at: {DATA_PATH}. "
+        "Make sure the file is in the same folder as app.py and run the app with: "
+        "streamlit run app.py"
+    )
+    st.stop()
+
+@st.cache_data
+def load_data():
+    df = pd.read_csv(DATA_PATH, encoding="utf-8-sig")
+    df.columns = [column.strip() for column in df.columns]
+    df["Province"] = df["Province"].astype(str).str.strip()
+    df["PostalCode"] = df["PostalCode"].astype(str).str.strip()
+    df["Date"] = pd.to_datetime(df["Date"], format="%Y-%m", errors="coerce")
+    df["ProvincialDemand"] = pd.to_numeric(df["ProvincialDemand"], errors="coerce")
+    df["PostalCodeDemand"] = pd.to_numeric(df["PostalCodeDemand"], errors="coerce")
+
+    return df
+
+
+data = load_data()
+
+
+def show_historical_results(records, demand_column):
+    if records.empty:
+        st.warning("No historical data is available for the selected date range.")
+        return
+
+    st.subheader("Historical Demand Summary")
+    average, peak, minimum = st.columns(3)
+    demand = records[demand_column]
+
+    average.metric("Average Demand", f"{demand.mean():.0f} MW")
+    peak.metric("Peak Demand", f"{demand.max():.0f} MW")
+    minimum.metric("Minimum Demand", f"{demand.min():.0f} MW")
+
+    figure = px.line(
+        records,
+        x="Date",
+        y=demand_column,
+        title="Demand Trend",
+        template=chart_theme,
+    )
+    st.plotly_chart(figure, use_container_width=True)
+    st.dataframe(records, use_container_width=True)
+
+
+def show_forecast_result(records, demand_column, horizon):
+    if records.empty:
+        st.warning("No data is available for the selected location.")
+        return
+
+    forecast = records.sort_values("Date")[demand_column].tail(horizon).mean()
+    st.metric("Estimated Demand", f"{forecast:.0f} MW")
+
 
 # ==================================================
 # HEADER ALWAYS VISIBLE
@@ -187,8 +303,9 @@ if st.session_state.page == "home":
     with col1:
 
         if st.button(
-            "🏛 Provincial Demand Dashboard",
-            use_container_width=True
+            "Provincial Demand Dashboard",
+            use_container_width=True,
+            on_click=trigger_click_sound,
         ):
             st.session_state.page = "provincial"
             st.rerun()
@@ -196,8 +313,9 @@ if st.session_state.page == "home":
     with col2:
 
         if st.button(
-            "📮 Postal Code Demand Dashboard",
-            use_container_width=True
+            "Postal Code Demand Dashboard",
+            use_container_width=True,
+            on_click=trigger_click_sound,
         ):
             st.session_state.page = "postal"
             st.rerun()
@@ -208,7 +326,7 @@ if st.session_state.page == "home":
 
 elif st.session_state.page == "provincial":
 
-    if st.button("← Return Home"):
+    if st.button("← Return Home", on_click=trigger_click_sound):
         st.session_state.page = "home"
         st.rerun()
 
@@ -254,80 +372,18 @@ elif st.session_state.page == "provincial":
                 )
 
             generate = st.button(
-                "Generate Historical Demand"
+                "Generate Historical Demand",
+                on_click=trigger_click_sound,
             )
 
             if generate:
 
                 province_data = data[
-                    data["Province"] == province
-                ]
-
-                with st.container(border=True):
-
-                    st.subheader("Forecast Summary")
-
-                    m1, m2, m3 = st.columns(3)
-
-                    m1.metric(
-                        "Average Demand",
-                        f"{province_data['ProvincialDemand'].mean():.0f} MW"
-                    )
-
-                    m2.metric(
-                        "Peak Demand",
-                        f"{province_data['ProvincialDemand'].max():.0f} MW"
-                    )
-
-                    m3.metric(
-                        "Minimum Demand",
-                        f"{province_data['ProvincialDemand'].min():.0f} MW"
-                    )
-
-                with st.container(border=True):
-
-                    st.subheader("Demand Analysis")
-
-                    c1, c2 = st.columns(2)
-
-                    with c1:
-
-                        fig = px.line(
-                            province_data,
-                            x="Date",
-                            y="ProvincialDemand",
-                            title="Demand Trend",
-                            template=chart_theme
-                        )
-
-                        st.plotly_chart(
-                            fig,
-                            use_container_width=True
-                        )
-
-                    with c2:
-
-                        weather_fig = px.line(
-                            province_data,
-                            x="Date",
-                            y="ProvincialDemand",
-                            title="Weather Placeholder",
-                            template=chart_theme
-                        )
-
-                        st.plotly_chart(
-                            weather_fig,
-                            use_container_width=True
-                        )
-
-                with st.container(border=True):
-
-                    st.subheader("Historical Data")
-
-                    st.dataframe(
-                        province_data,
-                        use_container_width=True
-                    )
+                    (data["Province"] == province)
+                    & (data["Date"] >= pd.Timestamp(start_date))
+                    & (data["Date"] <= pd.Timestamp(end_date))
+                ].sort_values("Date")
+                show_historical_results(province_data, "ProvincialDemand")
 
         # ======================================
 
@@ -348,19 +404,13 @@ elif st.session_state.page == "provincial":
             )
 
             generate = st.button(
-                "Generate Forecast"
+                "Generate Forecast",
+                on_click=trigger_click_sound,
             )
 
             if generate:
-
-                province_data = data[
-                    data["Province"] == province
-                ]
-
-                st.metric(
-                    "Forecasted Demand",
-                    f"{province_data['ProvincialDemand'].mean():.0f} MW"
-                )
+                province_data = data[data["Province"] == province]
+                show_forecast_result(province_data, "ProvincialDemand", horizon)
 
 # ==================================================
 # POSTAL PAGE
@@ -368,7 +418,7 @@ elif st.session_state.page == "provincial":
 
 elif st.session_state.page == "postal":
 
-    if st.button("← Return Home"):
+    if st.button("← Return Home", on_click=trigger_click_sound):
         st.session_state.page = "home"
         st.rerun()
 
@@ -397,50 +447,33 @@ elif st.session_state.page == "postal":
                 sorted(data["PostalCode"].unique())
             )
 
+            d1, d2 = st.columns(2)
+
+            with d1:
+                start_date = st.date_input(
+                    "Start Date",
+                    value=data["Date"].min()
+                )
+
+            with d2:
+                end_date = st.date_input(
+                    "End Date",
+                    value=data["Date"].max()
+                )
+
             generate = st.button(
                 "Generate Historical Demand",
-                key="postal_hist"
+                key="postal_hist",
+                on_click=trigger_click_sound,
             )
 
             if generate:
-
                 postal_data = data[
-                    data["PostalCode"] == postal
-                ]
-
-                m1, m2, m3 = st.columns(3)
-
-                m1.metric(
-                    "Average Demand",
-                    f"{postal_data['PostalCodeDemand'].mean():.0f} MW"
-                )
-
-                m2.metric(
-                    "Peak Demand",
-                    f"{postal_data['PostalCodeDemand'].max():.0f} MW"
-                )
-
-                m3.metric(
-                    "Minimum Demand",
-                    f"{postal_data['PostalCodeDemand'].min():.0f} MW"
-                )
-
-                fig = px.line(
-                    postal_data,
-                    x="Date",
-                    y="PostalCodeDemand",
-                    template=chart_theme
-                )
-
-                st.plotly_chart(
-                    fig,
-                    use_container_width=True
-                )
-
-                st.dataframe(
-                    postal_data,
-                    use_container_width=True
-                )
+                    (data["PostalCode"] == postal)
+                    & (data["Date"] >= pd.Timestamp(start_date))
+                    & (data["Date"] <= pd.Timestamp(end_date))
+                ].sort_values("Date")
+                show_historical_results(postal_data, "PostalCodeDemand")
 
         else:
 
@@ -456,16 +489,10 @@ elif st.session_state.page == "postal":
 
             generate = st.button(
                 "Generate Forecast",
-                key="postal_forecast"
+                key="postal_forecast",
+                on_click=trigger_click_sound,
             )
 
             if generate:
-
-                postal_data = data[
-                    data["PostalCode"] == postal
-                ]
-
-                st.metric(
-                    "Forecast Demand",
-                    f"{postal_data['PostalCodeDemand'].mean():.0f} MW"
-                )
+                postal_data = data[data["PostalCode"] == postal]
+                show_forecast_result(postal_data, "PostalCodeDemand", horizon)
