@@ -1,12 +1,6 @@
-import base64
-import io
-import math
-import struct
-import wave
 from pathlib import Path
 
 import streamlit as st
-import streamlit.components.v1 as components
 import pandas as pd
 import plotly.express as px
 
@@ -29,46 +23,6 @@ if "dark_mode" not in st.session_state:
 
 if "page" not in st.session_state:
     st.session_state.page = "home"
-
-if "play_click_sound" not in st.session_state:
-    st.session_state.play_click_sound = False
-
-
-def trigger_click_sound():
-    st.session_state.play_click_sound = True
-
-
-def make_click_sound_data_uri():
-    sample_rate = 22050
-    frame_count = int(sample_rate * 0.06)
-    audio = io.BytesIO()
-
-    with wave.open(audio, "wb") as wav_file:
-        wav_file.setnchannels(1)
-        wav_file.setsampwidth(2)
-        wav_file.setframerate(sample_rate)
-
-        for frame in range(frame_count):
-            envelope = 1 - frame / frame_count
-            sample = int(
-                0.35
-                * envelope
-                * 32767
-                * math.sin(2 * math.pi * 1400 * frame / sample_rate)
-            )
-            wav_file.writeframesraw(struct.pack("<h", sample))
-
-    encoded_audio = base64.b64encode(audio.getvalue()).decode("ascii")
-    return f"data:audio/wav;base64,{encoded_audio}"
-
-
-if st.session_state.play_click_sound:
-    sound_data_uri = make_click_sound_data_uri()
-    components.html(
-        f'<audio autoplay src="{sound_data_uri}"></audio>',
-        height=0,
-    )
-    st.session_state.play_click_sound = False
 
 # ==================================================
 # DARK MODE
@@ -119,11 +73,18 @@ if dark_mode:
 st.markdown("""
 <style>
 
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@600;700&display=swap');
+
 /* MAIN TITLE */
 .main-title{
     text-align:center;
     font-size:72px;
     font-weight:700;
+    font-family:'Orbitron', 'Bahnschrift', 'Segoe UI', sans-serif;
+    background:linear-gradient(135deg, #1d4ed8, #3b82f6);
+    -webkit-background-clip:text;
+    background-clip:text;
+    color:transparent;
 }
 
 /* HOME CARDS */
@@ -305,7 +266,6 @@ if st.session_state.page == "home":
         if st.button(
             "Provincial Demand Dashboard",
             use_container_width=True,
-            on_click=trigger_click_sound,
         ):
             st.session_state.page = "provincial"
             st.rerun()
@@ -315,7 +275,6 @@ if st.session_state.page == "home":
         if st.button(
             "Postal Code Demand Dashboard",
             use_container_width=True,
-            on_click=trigger_click_sound,
         ):
             st.session_state.page = "postal"
             st.rerun()
@@ -326,7 +285,7 @@ if st.session_state.page == "home":
 
 elif st.session_state.page == "provincial":
 
-    if st.button("← Return Home", on_click=trigger_click_sound):
+    if st.button("← Return Home"):
         st.session_state.page = "home"
         st.rerun()
 
@@ -373,7 +332,6 @@ elif st.session_state.page == "provincial":
 
             generate = st.button(
                 "Generate Historical Demand",
-                on_click=trigger_click_sound,
             )
 
             if generate:
@@ -405,7 +363,6 @@ elif st.session_state.page == "provincial":
 
             generate = st.button(
                 "Generate Forecast",
-                on_click=trigger_click_sound,
             )
 
             if generate:
@@ -418,7 +375,7 @@ elif st.session_state.page == "provincial":
 
 elif st.session_state.page == "postal":
 
-    if st.button("← Return Home", on_click=trigger_click_sound):
+    if st.button("← Return Home"):
         st.session_state.page = "home"
         st.rerun()
 
@@ -464,7 +421,6 @@ elif st.session_state.page == "postal":
             generate = st.button(
                 "Generate Historical Demand",
                 key="postal_hist",
-                on_click=trigger_click_sound,
             )
 
             if generate:
@@ -490,7 +446,6 @@ elif st.session_state.page == "postal":
             generate = st.button(
                 "Generate Forecast",
                 key="postal_forecast",
-                on_click=trigger_click_sound,
             )
 
             if generate:
