@@ -156,18 +156,12 @@ st.markdown(
 """
 <div style='text-align:center;
             font-size:20px;
-            line-height:1.8;'>
+            line-height:1.3;'>
 
-Welcome to the Canadian Electrical Demand Dashboard
-
-<br>
-
-Please select Provincial Demand
-or Postal Code Demand to begin forecasting.
-
-<br><br>
-
-Cloud-hosted dashboard for provincial and postal code demand forecasting.
+Cloud-hosted dashboard for provincial and postal code demand forecasting.<br>
+A Capstone Project By: Syed AbdulRahman • Soomin Maeng • Ammar Abou Elmorin • Omar Farag<br>
+Welcome to the Canadian Electrical Demand Dashboard<br>
+Please select Provincial Demand or Postal Code Demand to begin forecasting.
 
 </div>
 """,
